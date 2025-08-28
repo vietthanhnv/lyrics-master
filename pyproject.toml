@@ -1,0 +1,165 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lyric-to-subtitle-app"
+version = "1.0.0"
+description = "Desktop application for generating word-level synchronized subtitles from music files"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Lyric-to-Subtitle App Team"}
+]
+keywords = ["subtitles", "karaoke", "speech-recognition", "audio-processing", "ai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Multimedia :: Video :: Display",
+]
+
+dependencies = [
+    # Core dependencies
+    "PyQt6>=6.4.0",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    
+    # Audio processing
+    "librosa>=0.10.0",
+    "pydub>=0.25.1",
+    "soundfile>=0.12.1",
+    
+    # AI models
+    "demucs>=4.0.0",
+    "whisperx>=3.1.0",
+    "transformers>=4.30.0",
+    
+    # Subtitle processing
+    "pysrt>=1.1.2",
+    "webvtt-py>=0.4.6",
+    
+    # Translation services
+    "deepl>=1.12.0",
+    "googletrans>=4.0.0",
+    
+    # Utilities
+    "requests>=2.28.0",
+    "tqdm>=4.64.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "matplotlib>=3.6.0",
+    
+    # Configuration and logging
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-qt>=4.2.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+build = [
+    "pyinstaller>=5.8.0",
+    "auto-py-to-exe>=2.32.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/lyric-to-subtitle-app/lyric-to-subtitle-app"
+Repository = "https://github.com/lyric-to-subtitle-app/lyric-to-subtitle-app"
+Issues = "https://github.com/lyric-to-subtitle-app/lyric-to-subtitle-app/issues"
+
+[project.scripts]
+lyric-to-subtitle = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src" = ["*.py"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "asyncio: marks tests as async (deselect with '-m \"not asyncio\"')",
+]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

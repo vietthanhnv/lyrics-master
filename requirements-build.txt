@@ -1,0 +1,34 @@
+# Build requirements for Lyric-to-Subtitle App
+# These are the dependencies needed to build standalone executables
+
+# Core build tools
+pyinstaller>=5.8.0
+auto-py-to-exe>=2.32.0
+
+# Build optimization
+upx-ucl>=3.96  # UPX compression (optional, platform-dependent)
+
+# Development tools for building
+setuptools>=65.0.0
+wheel>=0.38.0
+build>=0.10.0
+
+# Platform-specific build dependencies
+# Windows
+pywin32>=305; sys_platform == "win32"
+pywin32-ctypes>=0.2.0; sys_platform == "win32"
+
+# macOS  
+pyobjc-framework-Cocoa>=9.0; sys_platform == "darwin"
+pyobjc-framework-Quartz>=9.0; sys_platform == "darwin"
+
+# Linux
+# No specific requirements, but may need system packages:
+# - build-essential (Ubuntu/Debian)
+# - gcc (Fedora/RHEL)
+# - base-devel (Arch Linux)
+
+# Optional: Code signing and notarization tools
+# signtool (Windows) - part of Windows SDK
+# codesign (macOS) - part of Xcode Command Line Tools
+# gpg (Linux) - for package signing

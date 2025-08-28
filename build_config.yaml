@@ -1,0 +1,162 @@
+# Build configuration for Lyric-to-Subtitle App
+# This file contains platform-specific build settings and options
+
+app:
+  name: "Lyric-to-Subtitle App"
+  version: "1.0.0"
+  identifier: "com.lyrictosubtitle.app"
+  description: "Generate word-level synchronized subtitles from music files"
+  author: "Lyric-to-Subtitle App Team"
+  license: "MIT"
+
+# PyInstaller configuration
+pyinstaller:
+  # Common options for all platforms
+  common:
+    clean: true
+    noconfirm: true
+    strip: false
+    upx: true
+    console: false # GUI application
+
+  # Platform-specific options
+  windows:
+    name: "LyricToSubtitleApp.exe"
+    icon: null # Path to .ico file
+    version_file: null # Path to version info file
+    manifest: null # Path to manifest file
+
+  macos:
+    name: "LyricToSubtitleApp"
+    bundle_name: "LyricToSubtitleApp.app"
+    icon: null # Path to .icns file
+    bundle_identifier: "com.lyrictosubtitle.app"
+    info_plist:
+      CFBundleName: "Lyric-to-Subtitle App"
+      CFBundleDisplayName: "Lyric-to-Subtitle App"
+      CFBundleVersion: "1.0.0"
+      CFBundleShortVersionString: "1.0.0"
+      NSHighResolutionCapable: true
+      NSRequiresAquaSystemAppearance: false
+
+  linux:
+    name: "LyricToSubtitleApp"
+    icon: null # Path to .png file
+
+# Dependencies to include
+dependencies:
+  # Core application dependencies
+  required:
+    - PyQt6
+    - torch
+    - torchaudio
+    - transformers
+    - librosa
+    - soundfile
+    - pydub
+    - demucs
+    - whisperx
+    - pysrt
+    - webvtt-py
+    - deepl
+    - googletrans
+    - requests
+    - tqdm
+    - numpy
+    - scipy
+    - pyyaml
+    - python-dotenv
+
+  # Optional dependencies (may be excluded to reduce size)
+  optional:
+    - matplotlib
+    - pillow
+    - opencv-python
+
+  # Dependencies to exclude
+  exclude:
+    - tkinter
+    - matplotlib.backends._backend_tk
+    - PIL.ImageTk
+    - PIL._imagingtk
+    - jupyter
+    - notebook
+    - ipython
+
+# Data files to include in the build
+data_files:
+  - source: "data/hello.mp3"
+    destination: "data"
+  - source: "README.md"
+    destination: "."
+  - source: "pyproject.toml"
+    destination: "."
+
+# Hidden imports (modules that PyInstaller might miss)
+hidden_imports:
+  - src.main
+  - src.models
+  - src.services
+  - src.ui
+  - src.utils
+  - PyQt6.QtCore
+  - PyQt6.QtGui
+  - PyQt6.QtWidgets
+  - PyQt6.QtMultimedia
+
+# Build optimization settings
+optimization:
+  # UPX compression (reduces file size but may increase startup time)
+  upx_enabled: true
+  upx_exclude: []
+
+  # Strip debug symbols (reduces file size)
+  strip_enabled: false
+
+  # Exclude unused modules
+  exclude_unused: true
+
+  # Bundle everything into a single file (slower startup but easier distribution)
+  onefile: false
+
+# Platform-specific system requirements
+system_requirements:
+  windows:
+    min_version: "Windows 10"
+    architecture: ["x64", "x86"]
+    ram_mb: 4096
+    disk_mb: 2048
+
+  macos:
+    min_version: "macOS 10.15"
+    architecture: ["x86_64", "arm64"]
+    ram_mb: 4096
+    disk_mb: 2048
+
+  linux:
+    distributions: ["Ubuntu 20.04+", "Fedora 35+", "Debian 11+"]
+    architecture: ["x86_64", "aarch64"]
+    ram_mb: 4096
+    disk_mb: 2048
+
+# Distribution settings
+distribution:
+  # Create installer packages
+  create_installer: false
+
+  # Code signing (requires certificates)
+  code_signing:
+    enabled: false
+    windows:
+      certificate: null
+      password: null
+    macos:
+      identity: null
+      entitlements: null
+
+  # Notarization (macOS)
+  notarization:
+    enabled: false
+    apple_id: null
+    password: null
+    team_id: null
