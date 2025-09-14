@@ -27,13 +27,15 @@ class AudioProcessingResult:
     
     def __init__(self, success: bool, alignment_data: Optional[AlignmentData] = None,
                  error_message: Optional[str] = None, processing_time: float = 0.0,
-                 vocals_path: Optional[str] = None, instrumental_path: Optional[str] = None):
+                 vocals_path: Optional[str] = None, instrumental_path: Optional[str] = None,
+                 vocal_saved_path: Optional[str] = None):
         self.success = success
         self.alignment_data = alignment_data
         self.error_message = error_message
         self.processing_time = processing_time
         self.vocals_path = vocals_path
         self.instrumental_path = instrumental_path
+        self.vocal_saved_path = vocal_saved_path
 
 
 class AudioProcessor(IAudioProcessor):
@@ -198,6 +200,7 @@ class AudioProcessor(IAudioProcessor):
         start_time = time.time()
         vocals_path = None
         instrumental_path = None
+        vocal_saved_path = None
         
         try:
             self._is_processing = True
@@ -219,6 +222,10 @@ class AudioProcessor(IAudioProcessor):
                 # Handle instrumental file if requested
                 if options.save_instrumental and separation_result.instrumental_path:
                     instrumental_path = self._save_instrumental_file(separation_result.instrumental_path, audio_path, options.output_directory)
+                
+                # Handle vocal file if requested
+                if options.save_vocal and separation_result.vocals_path:
+                    vocal_saved_path = self._save_vocal_file(separation_result.vocals_path, audio_path, options.output_directory)
                 
                 # Step 3: Speech recognition and alignment (45% of progress)
                 self._update_progress(50.0, "Transcribing and aligning speech...")
@@ -267,7 +274,8 @@ class AudioProcessor(IAudioProcessor):
                 alignment_data=alignment_data,
                 processing_time=processing_time,
                 vocals_path=vocals_path,
-                instrumental_path=instrumental_path
+                instrumental_path=instrumental_path,
+                vocal_saved_path=vocal_saved_path
             )
             
         except Exception as e:
@@ -283,7 +291,8 @@ class AudioProcessor(IAudioProcessor):
                 error_message=error_msg,
                 processing_time=processing_time,
                 vocals_path=vocals_path,
-                instrumental_path=instrumental_path
+                instrumental_path=instrumental_path,
+                vocal_saved_path=vocal_saved_path
             )
             
         finally:
@@ -387,6 +396,41 @@ class AudioProcessor(IAudioProcessor):
             
         except Exception as e:
             logger.error(f"Failed to save instrumental file: {e}")
+            return None
+
+    def _save_vocal_file(self, vocals_path: str, original_audio_path: str, output_directory: str) -> Optional[str]:
+        """
+        Save the vocal file to the output directory.
+        
+        Args:
+            vocals_path: Path to the temporary vocal file
+            original_audio_path: Path to the original audio file
+            output_directory: Directory to save the vocal file
+            
+        Returns:
+            Path to the saved vocal file, or None if saving failed
+        """
+        try:
+            if not vocals_path or not os.path.exists(vocals_path):
+                logger.warning("Vocal file not found, skipping save")
+                return None
+            
+            # Generate output filename
+            original_name = os.path.splitext(os.path.basename(original_audio_path))[0]
+            vocal_filename = f"{original_name}_vocals.wav"
+            output_path = os.path.join(output_directory, vocal_filename)
+            
+            # Ensure output directory exists
+            os.makedirs(output_directory, exist_ok=True)
+            
+            # Copy the vocal file to the output directory
+            shutil.copy2(vocals_path, output_path)
+            
+            logger.info(f"Vocal file saved to: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Failed to save vocal file: {e}")
             return None
 
     def estimate_processing_time(self, audio_duration: float, model_size: ModelSize) -> float:
