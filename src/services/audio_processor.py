@@ -27,12 +27,13 @@ class AudioProcessingResult:
     
     def __init__(self, success: bool, alignment_data: Optional[AlignmentData] = None,
                  error_message: Optional[str] = None, processing_time: float = 0.0,
-                 vocals_path: Optional[str] = None):
+                 vocals_path: Optional[str] = None, instrumental_path: Optional[str] = None):
         self.success = success
         self.alignment_data = alignment_data
         self.error_message = error_message
         self.processing_time = processing_time
         self.vocals_path = vocals_path
+        self.instrumental_path = instrumental_path
 
 
 class AudioProcessor(IAudioProcessor):
@@ -83,16 +84,16 @@ class AudioProcessor(IAudioProcessor):
         self.vocal_separator.set_progress_callback(self._vocal_progress_callback)
         self.speech_recognizer.set_progress_callback(self._speech_progress_callback)
     
-    def separate_vocals(self, audio_path: str, model_size: ModelSize) -> str:
+    def separate_vocals(self, audio_path: str, model_size: ModelSize) -> VocalSeparationResult:
         """
-        Separate vocals from audio and return path to vocals file.
+        Separate vocals from audio and return separation result.
         
         Args:
             audio_path: Path to the input audio file
             model_size: Model size to use for separation
             
         Returns:
-            Path to the separated vocals file
+            VocalSeparationResult containing paths to separated files
             
         Raises:
             ProcessingError: If vocal separation fails
@@ -110,8 +111,12 @@ class AudioProcessor(IAudioProcessor):
             if result.vocals_path:
                 self._temp_files.append(result.vocals_path)
             
+            # Track the instrumental file for cleanup if it exists
+            if result.instrumental_path:
+                self._temp_files.append(result.instrumental_path)
+            
             self._update_progress(100.0, "Vocal separation complete")
-            return result.vocals_path
+            return result
             
         except Exception as e:
             logger.error(f"Vocal separation failed: {e}")
@@ -192,6 +197,7 @@ class AudioProcessor(IAudioProcessor):
         """
         start_time = time.time()
         vocals_path = None
+        instrumental_path = None
         
         try:
             self._is_processing = True
@@ -206,7 +212,13 @@ class AudioProcessor(IAudioProcessor):
             try:
                 # Step 2: Vocal separation (45% of progress)
                 self._update_progress(5.0, "Separating vocals from audio...")
-                vocals_path = self.separate_vocals(audio_path, options.model_size)
+                separation_result = self.separate_vocals(audio_path, options.model_size)
+                
+                vocals_path = separation_result.vocals_path
+                
+                # Handle instrumental file if requested
+                if options.save_instrumental and separation_result.instrumental_path:
+                    instrumental_path = self._save_instrumental_file(separation_result.instrumental_path, audio_path, options.output_directory)
                 
                 # Step 3: Speech recognition and alignment (45% of progress)
                 self._update_progress(50.0, "Transcribing and aligning speech...")
@@ -254,7 +266,8 @@ class AudioProcessor(IAudioProcessor):
                 success=True,
                 alignment_data=alignment_data,
                 processing_time=processing_time,
-                vocals_path=vocals_path
+                vocals_path=vocals_path,
+                instrumental_path=instrumental_path
             )
             
         except Exception as e:
@@ -269,7 +282,8 @@ class AudioProcessor(IAudioProcessor):
                 success=False,
                 error_message=error_msg,
                 processing_time=processing_time,
-                vocals_path=vocals_path
+                vocals_path=vocals_path,
+                instrumental_path=instrumental_path
             )
             
         finally:
@@ -340,6 +354,41 @@ class AudioProcessor(IAudioProcessor):
             source_file=audio_file.path
         )
     
+    def _save_instrumental_file(self, instrumental_path: str, original_audio_path: str, output_directory: str) -> Optional[str]:
+        """
+        Save the instrumental file to the output directory.
+        
+        Args:
+            instrumental_path: Path to the temporary instrumental file
+            original_audio_path: Path to the original audio file
+            output_directory: Directory to save the instrumental file
+            
+        Returns:
+            Path to the saved instrumental file, or None if saving failed
+        """
+        try:
+            if not instrumental_path or not os.path.exists(instrumental_path):
+                logger.warning("Instrumental file not found, skipping save")
+                return None
+            
+            # Generate output filename
+            original_name = os.path.splitext(os.path.basename(original_audio_path))[0]
+            instrumental_filename = f"{original_name}_instrumental.wav"
+            output_path = os.path.join(output_directory, instrumental_filename)
+            
+            # Ensure output directory exists
+            os.makedirs(output_directory, exist_ok=True)
+            
+            # Copy the instrumental file to the output directory
+            shutil.copy2(instrumental_path, output_path)
+            
+            logger.info(f"Instrumental file saved to: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Failed to save instrumental file: {e}")
+            return None
+
     def estimate_processing_time(self, audio_duration: float, model_size: ModelSize) -> float:
         """
         Estimate total processing time for the complete pipeline.

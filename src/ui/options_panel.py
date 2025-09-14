@@ -176,6 +176,14 @@ class OptionsPanel(QWidget):
         )
         advanced_layout.addWidget(self.enhance_vocals_check, 2, 0, 1, 2)
         
+        # Save instrumental track
+        self.save_instrumental_check = QCheckBox("Save Instrumental Track")
+        self.save_instrumental_check.setToolTip(
+            "Save the instrumental (music-only) track after vocal separation.\n"
+            "This creates an additional output file with vocals removed."
+        )
+        advanced_layout.addWidget(self.save_instrumental_check, 3, 0, 1, 2)
+        
         layout.addWidget(advanced_group)
         layout.addStretch()
         
@@ -514,6 +522,7 @@ class OptionsPanel(QWidget):
         self.confidence_spin.valueChanged.connect(self._on_options_changed)
         self.denoise_check.toggled.connect(self._on_options_changed)
         self.enhance_vocals_check.toggled.connect(self._on_options_changed)
+        self.save_instrumental_check.toggled.connect(self._on_options_changed)
         
         # Export tab signals
         for checkbox in self.format_checks.values():
@@ -709,7 +718,8 @@ class OptionsPanel(QWidget):
             translation_enabled=translation_enabled,
             target_language=target_language,
             translation_service=translation_service,
-            output_directory=self.output_dir_edit.text()
+            output_directory=self.output_dir_edit.text(),
+            save_instrumental=self.save_instrumental_check.isChecked()
         )
         
     def _update_ui_from_options(self, options: ProcessingOptions):
@@ -745,6 +755,9 @@ class OptionsPanel(QWidget):
         
         # Output directory
         self.output_dir_edit.setText(options.output_directory)
+        
+        # Instrumental output option
+        self.save_instrumental_check.setChecked(options.save_instrumental)
         
     def _get_model_size_tooltip(self, size: ModelSize) -> str:
         """Get tooltip text for model size."""

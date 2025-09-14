@@ -24,9 +24,11 @@ class VocalSeparationResult:
     """Result of vocal separation operation."""
     
     def __init__(self, success: bool, vocals_path: Optional[str] = None, 
+                 instrumental_path: Optional[str] = None,
                  error_message: Optional[str] = None, processing_time: float = 0.0):
         self.success = success
         self.vocals_path = vocals_path
+        self.instrumental_path = instrumental_path
         self.error_message = error_message
         self.processing_time = processing_time
 
@@ -164,9 +166,10 @@ class VocalSeparator:
                 # Update progress
                 self._update_progress(90.0, "Finalizing vocal extraction...")
                 
-                # Find the vocals file
+                # Find the vocals and instrumental files
                 vocals_path = None
-                logger.info(f"Looking for vocals file in output files: {output_files}")
+                instrumental_path = None
+                logger.info(f"Looking for vocals and instrumental files in output files: {output_files}")
                 
                 for file_path in output_files:
                     filename = os.path.basename(file_path).lower()
@@ -174,7 +177,9 @@ class VocalSeparator:
                     if 'vocals' in filename:
                         vocals_path = file_path
                         logger.info(f"Found vocals file: {vocals_path}")
-                        break
+                    elif 'instrumental' in filename or 'accomp' in filename or 'music' in filename:
+                        instrumental_path = file_path
+                        logger.info(f"Found instrumental file: {instrumental_path}")
                 
                 if not vocals_path:
                     # If no vocals file found, use the first output file
@@ -186,12 +191,13 @@ class VocalSeparator:
                     logger.info(f"Searching for files in output directory: {output_dir}")
                     for root, dirs, files in os.walk(output_dir):
                         for file in files:
-                            if 'vocals' in file.lower():
+                            filename_lower = file.lower()
+                            if 'vocals' in filename_lower:
                                 vocals_path = os.path.join(root, file)
                                 logger.info(f"Found vocals file manually: {vocals_path}")
-                                break
-                        if vocals_path:
-                            break
+                            elif 'instrumental' in filename_lower or 'accomp' in filename_lower or 'music' in filename_lower:
+                                instrumental_path = os.path.join(root, file)
+                                logger.info(f"Found instrumental file manually: {instrumental_path}")
                 
                 if not vocals_path or not os.path.exists(vocals_path):
                     raise ProcessingError("Vocal separation completed but vocals file not found")
@@ -214,6 +220,7 @@ class VocalSeparator:
             return VocalSeparationResult(
                 success=True,
                 vocals_path=vocals_path,
+                instrumental_path=instrumental_path,
                 processing_time=processing_time
             )
             
