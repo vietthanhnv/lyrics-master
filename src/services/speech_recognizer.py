@@ -83,11 +83,26 @@ class SpeechRecognizer:
         # Process segments
         for i, segment in enumerate(result.get('segments', [])):
             # Create segment
+            # Convert avg_logprob to confidence (0-1 range)
+            avg_logprob = segment.get('avg_logprob', -1.0)
+            confidence = max(0.0, min(1.0, (avg_logprob + 1.0)))  # Convert from [-inf, 0] to [0, 1]
+            
+            # Ensure valid timing
+            start_time = segment.get('start', 0.0)
+            end_time = segment.get('end', 0.0)
+            if end_time <= start_time:
+                end_time = start_time + 1.0  # Add 1 second duration
+            
+            # Ensure text is not empty
+            text = segment.get('text', '').strip()
+            if not text:
+                text = "[No text]"
+            
             seg = Segment(
-                start_time=segment.get('start', 0.0),
-                end_time=segment.get('end', 0.0),
-                text=segment.get('text', '').strip(),
-                confidence=segment.get('avg_logprob', 0.0),
+                start_time=start_time,
+                end_time=end_time,
+                text=text,
+                confidence=confidence,
                 segment_id=i
             )
             segments.append(seg)
@@ -95,11 +110,23 @@ class SpeechRecognizer:
             
             # Process words in segment
             for word_info in segment.get('words', []):
+                # Ensure word timing is valid
+                word_start = word_info.get('start', seg.start_time)
+                word_end = word_info.get('end', seg.end_time)
+                
+                # Fix invalid timing where end <= start
+                if word_end <= word_start:
+                    word_end = word_start + 0.1  # Add small duration
+                
+                # Get word confidence (probability is already 0-1)
+                word_confidence = word_info.get('probability', seg.confidence)
+                word_confidence = max(0.0, min(1.0, word_confidence))
+                
                 word_seg = WordSegment(
                     word=word_info.get('word', '').strip(),
-                    start_time=word_info.get('start', seg.start_time),
-                    end_time=word_info.get('end', seg.end_time),
-                    confidence=word_info.get('probability', seg.confidence),
+                    start_time=word_start,
+                    end_time=word_end,
+                    confidence=word_confidence,
                     segment_id=i
                 )
                 word_segments.append(word_seg)
@@ -110,10 +137,10 @@ class SpeechRecognizer:
                 start_time=0.0,
                 end_time=audio_duration or 10.0,
                 text="No speech detected",
-                confidence=0.0,
+                confidence=0.5,  # Use 0.5 instead of 0.0 for valid confidence
                 segment_id=0
             ))
-            confidence_scores.append(0.0)
+            confidence_scores.append(0.5)
         
         return AlignmentData(
             segments=segments,

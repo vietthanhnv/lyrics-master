@@ -65,3 +65,4 @@ htmlcov/
 *.DS_Store
 *.srt
 *.ass
+output/

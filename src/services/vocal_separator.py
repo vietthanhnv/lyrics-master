@@ -50,6 +50,7 @@ class VocalSeparator:
         self.progress_callback: Optional[Callable[[float, str], None]] = None
         self._current_process = None
         self._temp_files = []  # Track temporary files for cleanup
+        self.logger = logging.getLogger(__name__)
         
         # Ensure temp directory exists
         os.makedirs(self.temp_dir, exist_ok=True)
@@ -77,10 +78,7 @@ class VocalSeparator:
         """Update progress if callback is set."""
         if self.progress_callback:
             self.progress_callback(percentage, message)
-        self._temp_files: list[str] = []
-        
-        # Ensure temp directory exists
-        os.makedirs(self.temp_dir, exist_ok=True)
+        self.logger = logging.getLogger(__name__)
     
     def set_progress_callback(self, callback: Callable[[float, str], None]) -> None:
         """
@@ -120,8 +118,9 @@ class VocalSeparator:
             # Import audio-separator
             try:
                 from audio_separator.separator import Separator
+                self.logger.info("audio-separator imported successfully")
             except ImportError as e:
-                logger.warning(f"audio-separator not available: {e}")
+                self.logger.error(f"audio-separator not available: {e}")
                 raise ProcessingError(f"Required package 'audio-separator' is not installed. Please install it with: pip install audio-separator")
             
             # Create temporary output directory
