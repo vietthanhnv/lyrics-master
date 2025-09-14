@@ -96,7 +96,7 @@ class OptionsPanel(QWidget):
         # Create tabs
         self._create_model_tab()
         self._create_export_tab()
-        self._create_translation_tab()
+        # self._create_translation_tab()  # Hidden for now - to be developed later
         self._create_output_tab()
         
         # Action buttons
@@ -485,14 +485,16 @@ class OptionsPanel(QWidget):
         self.reset_btn.setToolTip("Reset all options to default values")
         buttons_layout.addWidget(self.reset_btn)
         
-        # Save preset
+        # Save preset (hidden for now)
         self.save_preset_btn = QPushButton("Save Preset...")
         self.save_preset_btn.setToolTip("Save current settings as a preset")
+        self.save_preset_btn.hide()  # Hide the button
         buttons_layout.addWidget(self.save_preset_btn)
         
-        # Load preset
+        # Load preset (hidden for now)
         self.load_preset_btn = QPushButton("Load Preset...")
         self.load_preset_btn.setToolTip("Load a saved preset")
+        self.load_preset_btn.hide()  # Hide the button
         buttons_layout.addWidget(self.load_preset_btn)
         
         buttons_layout.addStretch()
@@ -523,15 +525,15 @@ class OptionsPanel(QWidget):
         self.highlight_color_combo.currentTextChanged.connect(self._on_options_changed)
         self.animation_speed_combo.currentTextChanged.connect(self._on_options_changed)
         
-        # Translation tab signals
-        self.translation_check.toggled.connect(self._on_translation_toggled)
-        self.translation_service_combo.currentIndexChanged.connect(self._on_options_changed)
-        self.target_language_combo.currentIndexChanged.connect(self._on_options_changed)
-        self.deepl_key_edit.textChanged.connect(self._on_options_changed)
-        self.google_key_edit.textChanged.connect(self._on_options_changed)
-        self.test_connection_btn.clicked.connect(self._test_translation_connection)
-        self.bilingual_layout_combo.currentTextChanged.connect(self._on_options_changed)
-        self.separator_edit.textChanged.connect(self._on_options_changed)
+        # Translation tab signals (commented out - tab is hidden)
+        # self.translation_check.toggled.connect(self._on_translation_toggled)
+        # self.translation_service_combo.currentIndexChanged.connect(self._on_options_changed)
+        # self.target_language_combo.currentIndexChanged.connect(self._on_options_changed)
+        # self.deepl_key_edit.textChanged.connect(self._on_options_changed)
+        # self.google_key_edit.textChanged.connect(self._on_options_changed)
+        # self.test_connection_btn.clicked.connect(self._test_translation_connection)
+        # self.bilingual_layout_combo.currentTextChanged.connect(self._on_options_changed)
+        # self.separator_edit.textChanged.connect(self._on_options_changed)
         
         # Output tab signals
         self.output_dir_edit.textChanged.connect(self._on_options_changed)
@@ -689,14 +691,15 @@ class OptionsPanel(QWidget):
             if checkbox.isChecked():
                 export_formats.append(fmt)
         
-        # Get translation settings
-        translation_enabled = self.translation_check.isChecked()
+        # Get translation settings (disabled for now)
+        translation_enabled = False  # Translation is disabled
         target_language = None
         translation_service = None
         
-        if translation_enabled:
-            target_language = self.target_language_combo.currentData()
-            translation_service = self.translation_service_combo.currentData()
+        # Translation controls are hidden, so we set defaults
+        # if translation_enabled:
+        #     target_language = self.target_language_combo.currentData()
+        #     translation_service = self.translation_service_combo.currentData()
         
         return ProcessingOptions(
             model_size=self.model_size_combo.currentData(),
@@ -726,19 +729,19 @@ class OptionsPanel(QWidget):
         # Karaoke options
         self.karaoke_check.setChecked(options.karaoke_mode)
         
-        # Translation settings
-        self.translation_check.setChecked(options.translation_enabled)
-        self._on_translation_toggled(options.translation_enabled)
-        
-        if options.translation_service:
-            service_index = self.translation_service_combo.findData(options.translation_service)
-            if service_index >= 0:
-                self.translation_service_combo.setCurrentIndex(service_index)
-        
-        if options.target_language:
-            lang_index = self.target_language_combo.findData(options.target_language)
-            if lang_index >= 0:
-                self.target_language_combo.setCurrentIndex(lang_index)
+        # Translation settings (commented out - controls are hidden)
+        # self.translation_check.setChecked(options.translation_enabled)
+        # self._on_translation_toggled(options.translation_enabled)
+        # 
+        # if options.translation_service:
+        #     service_index = self.translation_service_combo.findData(options.translation_service)
+        #     if service_index >= 0:
+        #         self.translation_service_combo.setCurrentIndex(service_index)
+        # 
+        # if options.target_language:
+        #     lang_index = self.target_language_combo.findData(options.target_language)
+        #     if lang_index >= 0:
+        #         self.target_language_combo.setCurrentIndex(lang_index)
         
         # Output directory
         self.output_dir_edit.setText(options.output_directory)
