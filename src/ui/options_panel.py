@@ -201,8 +201,8 @@ class OptionsPanel(QWidget):
             self.format_checks[fmt] = checkbox
             formats_layout.addWidget(checkbox)
         
-        # Set SRT as default
-        self.format_checks[ExportFormat.SRT].setChecked(True)
+        # Set JSON as default
+        self.format_checks[ExportFormat.JSON].setChecked(True)
         
         layout.addWidget(formats_group)
         
