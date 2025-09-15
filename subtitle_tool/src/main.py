@@ -5,6 +5,9 @@ This module initializes the application and starts the PyQt6 event loop.
 """
 
 import sys
+
+sys.path.append(".")
+
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication
