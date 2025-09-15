@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Image + Audio Mode</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f0f0f0;
+      }
+      .test-section {
+        background: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .file-input {
+        margin: 10px 0;
+        padding: 10px;
+        border: 2px dashed #ccc;
+        border-radius: 4px;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .preview {
+        margin: 20px 0;
+        text-align: center;
+      }
+      canvas {
+        border: 1px solid #ccc;
+        max-width: 100%;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: none;
+      }
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎤 Test Image + Audio Karaoke Mode</h1>
+
+    <div class="test-section">
+      <h2>📁 File Upload Test</h2>
+      <div class="file-input">
+        <label>Select Image:</label>
+        <input type="file" id="imageInput" accept="image/*" />
+      </div>
+      <div class="file-input">
+        <label>Select Audio:</label>
+        <input type="file" id="audioInput" accept="audio/*" />
+      </div>
+      <button id="testUpload">Test Upload</button>
+      <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>🖼️ Preview Test</h2>
+      <div class="preview">
+        <canvas id="previewCanvas" width="640" height="360"></canvas>
+      </div>
+      <button id="testPreview" disabled>Test Preview</button>
+      <div id="previewStatus" class="status"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>🎬 Server Processing Test</h2>
+      <button id="testServer" disabled>Test Server Processing</button>
+      <div id="serverStatus" class="status"></div>
+    </div>
+
+    <script>
+      class ImageAudioTester {
+        constructor() {
+          this.imageFile = null;
+          this.audioFile = null;
+          this.loadedImage = null;
+          this.audioDuration = 0;
+          this.canvas = document.getElementById("previewCanvas");
+          this.ctx = this.canvas.getContext("2d");
+
+          this.initializeEventListeners();
+        }
+
+        initializeEventListeners() {
+          document
+            .getElementById("imageInput")
+            .addEventListener("change", (e) => this.loadImage(e));
+          document
+            .getElementById("audioInput")
+            .addEventListener("change", (e) => this.loadAudio(e));
+          document
+            .getElementById("testUpload")
+            .addEventListener("click", () => this.testUpload());
+          document
+            .getElementById("testPreview")
+            .addEventListener("click", () => this.testPreview());
+          document
+            .getElementById("testServer")
+            .addEventListener("click", () => this.testServer());
+        }
+
+        showStatus(elementId, message, type = "info") {
+          const element = document.getElementById(elementId);
+          element.textContent = message;
+          element.className = `status ${type}`;
+          element.style.display = "block";
+        }
+
+        async loadImage(event) {
+          const file = event.target.files[0];
+          if (file) {
+            this.imageFile = file;
+            console.log("Loading image:", file.name);
+
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+
+            img.onload = () => {
+              this.loadedImage = img;
+              this.showStatus(
+                "uploadStatus",
+                `Image loaded: ${file.name}`,
+                "success"
+              );
+              this.updateButtons();
+              this.drawImageOnCanvas();
+            };
+
+            img.onerror = () => {
+              this.showStatus("uploadStatus", "Error loading image", "error");
+            };
+
+            img.src = url;
+          }
+        }
+
+        async loadAudio(event) {
+          const file = event.target.files[0];
+          if (file) {
+            this.audioFile = file;
+            console.log("Loading audio:", file.name);
+
+            const audio = new Audio();
+            const url = URL.createObjectURL(file);
+
+            audio.onloadedmetadata = () => {
+              this.audioDuration = audio.duration;
+              this.showStatus(
+                "uploadStatus",
+                `Audio loaded: ${file.name} (${this.audioDuration.toFixed(
+                  1
+                )}s)`,
+                "success"
+              );
+              this.updateButtons();
+            };
+
+            audio.onerror = () => {
+              this.showStatus("uploadStatus", "Error loading audio", "error");
+            };
+
+            audio.src = url;
+          }
+        }
+
+        drawImageOnCanvas() {
+          if (!this.loadedImage) return;
+
+          // Clear canvas
+          this.ctx.fillStyle = "#000000";
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // Calculate scaling
+          const canvasAspect = this.canvas.width / this.canvas.height;
+          const imageAspect = this.loadedImage.width / this.loadedImage.height;
+
+          let drawWidth, drawHeight, drawX, drawY;
+
+          if (imageAspect > canvasAspect) {
+            drawWidth = this.canvas.width;
+            drawHeight = this.canvas.width / imageAspect;
+            drawX = 0;
+            drawY = (this.canvas.height - drawHeight) / 2;
+          } else {
+            drawHeight = this.canvas.height;
+            drawWidth = this.canvas.height * imageAspect;
+            drawX = (this.canvas.width - drawWidth) / 2;
+            drawY = 0;
+          }
+
+          this.ctx.drawImage(
+            this.loadedImage,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
+          );
+        }
+
+        updateButtons() {
+          const hasFiles = this.imageFile && this.audioFile;
+          document.getElementById("testPreview").disabled = !hasFiles;
+          document.getElementById("testServer").disabled = !hasFiles;
+        }
+
+        testUpload() {
+          if (!this.imageFile || !this.audioFile) {
+            this.showStatus(
+              "uploadStatus",
+              "Please select both image and audio files",
+              "error"
+            );
+            return;
+          }
+
+          this.showStatus(
+            "uploadStatus",
+            "Files loaded successfully! Ready for processing.",
+            "success"
+          );
+        }
+
+        testPreview() {
+          if (!this.loadedImage) {
+            this.showStatus("previewStatus", "No image loaded", "error");
+            return;
+          }
+
+          this.drawImageOnCanvas();
+
+          // Add sample karaoke text
+          this.ctx.font = "bold 24px Arial";
+          this.ctx.textAlign = "center";
+          this.ctx.fillStyle = "#ffffff";
+          this.ctx.strokeStyle = "#000000";
+          this.ctx.lineWidth = 2;
+
+          const text = "Sample Karaoke Text";
+          const x = this.canvas.width / 2;
+          const y = this.canvas.height - 40;
+
+          this.ctx.strokeText(text, x, y);
+          this.ctx.fillText(text, x, y);
+
+          this.showStatus(
+            "previewStatus",
+            "Preview rendered with sample karaoke text",
+            "success"
+          );
+        }
+
+        async testServer() {
+          if (!this.imageFile || !this.audioFile) {
+            this.showStatus(
+              "serverStatus",
+              "Please select both files first",
+              "error"
+            );
+            return;
+          }
+
+          this.showStatus(
+            "serverStatus",
+            "Testing server connection...",
+            "info"
+          );
+
+          try {
+            // Test server health
+            const response = await fetch("http://localhost:3001/health");
+            if (response.ok) {
+              const data = await response.json();
+              this.showStatus(
+                "serverStatus",
+                `Server is healthy! Status: ${data.status}`,
+                "success"
+              );
+            } else {
+              this.showStatus(
+                "serverStatus",
+                "Server is not responding correctly",
+                "error"
+              );
+            }
+          } catch (error) {
+            this.showStatus(
+              "serverStatus",
+              "Server is not running. Please start the server first.",
+              "error"
+            );
+          }
+        }
+      }
+
+      // Initialize tester when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        new ImageAudioTester();
+      });
+    </script>
+  </body>
+</html>

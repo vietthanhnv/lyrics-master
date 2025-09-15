@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Image+Audio Upload Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .log {
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+        border-radius: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Simple Image+Audio Upload Test</h1>
+
+    <div class="section">
+      <h2>Step 1: Check Server</h2>
+      <button onclick="checkServer()">Check Server Health</button>
+      <div id="serverLog" class="log"></div>
+    </div>
+
+    <div class="section">
+      <h2>Step 2: Upload Files</h2>
+      <div>
+        <label
+          >Image: <input type="file" id="imageFile" accept="image/*"
+        /></label>
+      </div>
+      <div style="margin: 10px 0">
+        <label
+          >Audio: <input type="file" id="audioFile" accept="audio/*"
+        /></label>
+      </div>
+      <button onclick="uploadFiles()" id="uploadBtn">Upload Files</button>
+      <div id="uploadLog" class="log"></div>
+    </div>
+
+    <div class="section">
+      <h2>Step 3: Test Render</h2>
+      <button onclick="testRender()" id="renderBtn" disabled>
+        Test Render
+      </button>
+      <div id="renderLog" class="log"></div>
+    </div>
+
+    <script>
+      let uploadedVideoId = null;
+
+      function log(elementId, message, type = "info") {
+        const element = document.getElementById(elementId);
+        const timestamp = new Date().toLocaleTimeString();
+        const className =
+          type === "error" ? "error" : type === "success" ? "success" : "info";
+        element.innerHTML += `<div class="status ${className}">[${timestamp}] ${message}</div>`;
+        element.scrollTop = element.scrollHeight;
+        console.log(`[${timestamp}] ${message}`);
+      }
+
+      async function checkServer() {
+        log("serverLog", "Checking server health...", "info");
+        try {
+          const response = await fetch("http://localhost:3001/health");
+          if (response.ok) {
+            const data = await response.json();
+            log(
+              "serverLog",
+              `✅ Server is healthy! Status: ${data.status}`,
+              "success"
+            );
+            log(
+              "serverLog",
+              `Memory usage: ${JSON.stringify(data.memory)}`,
+              "info"
+            );
+          } else {
+            log(
+              "serverLog",
+              `❌ Server responded with status: ${response.status}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          log(
+            "serverLog",
+            `❌ Server connection failed: ${error.message}`,
+            "error"
+          );
+          log(
+            "serverLog",
+            "Make sure the server is running on port 3001",
+            "error"
+          );
+        }
+      }
+
+      async function uploadFiles() {
+        const imageFile = document.getElementById("imageFile").files[0];
+        const audioFile = document.getElementById("audioFile").files[0];
+
+        if (!imageFile || !audioFile) {
+          log(
+            "uploadLog",
+            "❌ Please select both image and audio files",
+            "error"
+          );
+          return;
+        }
+
+        log("uploadLog", `📁 Selected files:`, "info");
+        log(
+          "uploadLog",
+          `  Image: ${imageFile.name} (${(imageFile.size / 1024 / 1024).toFixed(
+            2
+          )} MB)`,
+          "info"
+        );
+        log(
+          "uploadLog",
+          `  Audio: ${audioFile.name} (${(audioFile.size / 1024 / 1024).toFixed(
+            2
+          )} MB)`,
+          "info"
+        );
+
+        const uploadBtn = document.getElementById("uploadBtn");
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Uploading...";
+
+        try {
+          log("uploadLog", "⬆️ Starting upload...", "info");
+
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          formData.append("audio", audioFile);
+
+          const response = await fetch(
+            "http://localhost:3001/upload/image-audio",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            uploadedVideoId = result.videoId;
+            log("uploadLog", `✅ Upload successful!`, "success");
+            log("uploadLog", `Video ID: ${uploadedVideoId}`, "success");
+            log(
+              "uploadLog",
+              `Duration: ${result.videoInfo.duration.toFixed(1)}s`,
+              "info"
+            );
+            log(
+              "uploadLog",
+              `Resolution: ${result.videoInfo.width}x${result.videoInfo.height}`,
+              "info"
+            );
+
+            document.getElementById("renderBtn").disabled = false;
+          } else {
+            log("uploadLog", `❌ Upload failed: ${result.error}`, "error");
+          }
+        } catch (error) {
+          log("uploadLog", `❌ Upload error: ${error.message}`, "error");
+        } finally {
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = "Upload Files";
+        }
+      }
+
+      async function testRender() {
+        if (!uploadedVideoId) {
+          log("renderLog", "❌ No video uploaded yet", "error");
+          return;
+        }
+
+        const renderBtn = document.getElementById("renderBtn");
+        renderBtn.disabled = true;
+        renderBtn.textContent = "Testing...";
+
+        log("renderLog", "🎬 Starting render test...", "info");
+
+        const renderData = {
+          videoId: uploadedVideoId,
+          subtitles: [
+            { start_time: 0, end_time: 3, text: "Hello world" },
+            { start_time: 3, end_time: 6, text: "This is a test" },
+          ],
+          wordSegments: [
+            { word: "Hello", start_time: 0, end_time: 1.5 },
+            { word: "world", start_time: 1.5, end_time: 3 },
+            { word: "This", start_time: 3, end_time: 4 },
+            { word: "is", start_time: 4, end_time: 4.5 },
+            { word: "a", start_time: 4.5, end_time: 5 },
+            { word: "test", start_time: 5, end_time: 6 },
+          ],
+          effects: {
+            fontFamily: "Arial",
+            fontSize: 60,
+            fontWeight: "bold",
+            primaryColor: "#ffffff",
+            highlightColor: "#ffff00",
+            karaokeMode: "highlight",
+            positionX: 960,
+            positionY: 930,
+          },
+          renderSettings: {
+            resolution: "1080p",
+            frameRate: 30,
+            quality: "medium",
+            format: "mp4",
+          },
+        };
+
+        try {
+          const response = await fetch("http://localhost:3001/render/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(renderData),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            log("renderLog", `✅ Render job started!`, "success");
+            log("renderLog", `Job ID: ${result.jobId}`, "info");
+
+            // Poll for status
+            pollRenderStatus(result.jobId);
+          } else {
+            log("renderLog", `❌ Render failed: ${result.error}`, "error");
+          }
+        } catch (error) {
+          log("renderLog", `❌ Render error: ${error.message}`, "error");
+        } finally {
+          renderBtn.disabled = false;
+          renderBtn.textContent = "Test Render";
+        }
+      }
+
+      async function pollRenderStatus(jobId) {
+        try {
+          const response = await fetch(
+            `http://localhost:3001/render/status/${jobId}`
+          );
+          const status = await response.json();
+
+          log(
+            "renderLog",
+            `📊 Status: ${status.status} - ${
+              status.message || "Processing..."
+            }`,
+            "info"
+          );
+
+          if (status.progress) {
+            log(
+              "renderLog",
+              `Progress: ${status.progress.toFixed(1)}%`,
+              "info"
+            );
+          }
+
+          if (status.status === "processing" || status.status === "pending") {
+            setTimeout(() => pollRenderStatus(jobId), 2000);
+          } else if (status.status === "completed") {
+            log("renderLog", `🎉 Render completed successfully!`, "success");
+            log(
+              "renderLog",
+              `Download: http://localhost:3001/download/${jobId}`,
+              "success"
+            );
+          } else if (status.status === "failed") {
+            log(
+              "renderLog",
+              `❌ Render failed: ${status.error || "Unknown error"}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          log("renderLog", `❌ Status check error: ${error.message}`, "error");
+        }
+      }
+
+      // Auto-check server on load
+      window.onload = () => {
+        checkServer();
+      };
+    </script>
+  </body>
+</html>

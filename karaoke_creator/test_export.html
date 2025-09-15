@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Export Test</title>
+  </head>
+  <body>
+    <h1>Karaoke Export Test</h1>
+    <p>This page tests the export functionality of the karaoke app.</p>
+
+    <script>
+      // Test MediaRecorder support
+      console.log(
+        "MediaRecorder supported:",
+        typeof MediaRecorder !== "undefined"
+      );
+      console.log(
+        "Canvas captureStream supported:",
+        !!HTMLCanvasElement.prototype.captureStream
+      );
+
+      // Test supported video formats
+      if (typeof MediaRecorder !== "undefined") {
+        const mp4Formats = [
+          "video/mp4;codecs=h264,aac",
+          "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+          "video/mp4",
+        ];
+
+        const webmFormats = [
+          "video/webm;codecs=vp9,opus",
+          "video/webm;codecs=vp8,vorbis",
+          "video/webm;codecs=vp9",
+          "video/webm;codecs=vp8",
+          "video/webm",
+        ];
+
+        console.log("MP4 Format Support:");
+        let mp4Supported = false;
+        mp4Formats.forEach((format) => {
+          const supported = MediaRecorder.isTypeSupported(format);
+          console.log(`${format}: ${supported}`);
+          if (supported) {
+            mp4Supported = true;
+          }
+        });
+
+        if (mp4Supported) {
+          console.log("✅ MP4 export is available!");
+        } else {
+          console.log("❌ MP4 export not supported in this browser");
+        }
+
+        console.log("\nWebM Format Support:");
+        webmFormats.forEach((format) => {
+          console.log(`${format}: ${MediaRecorder.isTypeSupported(format)}`);
+        });
+      }
+
+      // Test canvas functionality
+      const canvas = document.createElement("canvas");
+      canvas.width = 1920;
+      canvas.height = 1080;
+      const ctx = canvas.getContext("2d");
+
+      // Draw test content
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 60px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Export Test Frame", canvas.width / 2, canvas.height / 2);
+
+      console.log("Canvas test completed successfully");
+
+      // Test stream capture
+      if (canvas.captureStream) {
+        const stream = canvas.captureStream(30);
+        console.log("Canvas stream created:", stream);
+        console.log("Video tracks:", stream.getVideoTracks().length);
+      }
+
+      document.body.appendChild(canvas);
+      canvas.style.maxWidth = "100%";
+      canvas.style.height = "auto";
+      canvas.style.border = "1px solid #ccc";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Image + Audio Upload</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ccc;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+      }
+      .log {
+        background: #f0f0f0;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Debug Image + Audio Upload</h1>
+
+    <div class="section">
+      <h2>1. Server Health Check</h2>
+      <button onclick="checkServer()">Check Server</button>
+      <div id="serverStatus" class="log"></div>
+    </div>
+
+    <div class="section">
+      <h2>2. File Upload Test</h2>
+      <input type="file" id="imageInput" accept="image/*" />
+      <input type="file" id="audioInput" accept="audio/*" />
+      <button onclick="uploadFiles()">Upload Files</button>
+      <div id="uploadStatus" class="log"></div>
+    </div>
+
+    <div class="section">
+      <h2>3. Render Test</h2>
+      <button onclick="testRender()" id="renderBtn" disabled>
+        Test Render
+      </button>
+      <div id="renderStatus" class="log"></div>
+    </div>
+
+    <script>
+      let uploadedVideoId = null;
+
+      function log(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.innerHTML +=
+          new Date().toLocaleTimeString() + ": " + message + "<br>";
+        console.log(message);
+      }
+
+      async function checkServer() {
+        log("serverStatus", "Checking server health...");
+        try {
+          const response = await fetch("http://localhost:3001/health");
+          const data = await response.json();
+          log("serverStatus", "Server is healthy: " + JSON.stringify(data));
+        } catch (error) {
+          log("serverStatus", "Server error: " + error.message);
+        }
+      }
+
+      async function uploadFiles() {
+        const imageFile = document.getElementById("imageInput").files[0];
+        const audioFile = document.getElementById("audioInput").files[0];
+
+        if (!imageFile || !audioFile) {
+          log("uploadStatus", "Please select both image and audio files");
+          return;
+        }
+
+        log("uploadStatus", "Uploading files...");
+        log(
+          "uploadStatus",
+          "Image: " + imageFile.name + " (" + imageFile.size + " bytes)"
+        );
+        log(
+          "uploadStatus",
+          "Audio: " + audioFile.name + " (" + audioFile.size + " bytes)"
+        );
+
+        try {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          formData.append("audio", audioFile);
+
+          const response = await fetch(
+            "http://localhost:3001/upload/image-audio",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            uploadedVideoId = result.videoId;
+            log("uploadStatus", "Upload successful!");
+            log("uploadStatus", "Video ID: " + uploadedVideoId);
+            log(
+              "uploadStatus",
+              "Video Info: " + JSON.stringify(result.videoInfo)
+            );
+            document.getElementById("renderBtn").disabled = false;
+          } else {
+            log("uploadStatus", "Upload failed: " + result.error);
+          }
+        } catch (error) {
+          log("uploadStatus", "Upload error: " + error.message);
+        }
+      }
+
+      async function testRender() {
+        if (!uploadedVideoId) {
+          log("renderStatus", "No video uploaded yet");
+          return;
+        }
+
+        log("renderStatus", "Starting render test...");
+
+        const renderData = {
+          videoId: uploadedVideoId,
+          subtitles: [
+            {
+              start_time: 0,
+              end_time: 5,
+              text: "Test subtitle line",
+            },
+          ],
+          wordSegments: [
+            {
+              word: "Test",
+              start_time: 0,
+              end_time: 2.5,
+            },
+            {
+              word: "subtitle",
+              start_time: 2.5,
+              end_time: 4,
+            },
+            {
+              word: "line",
+              start_time: 4,
+              end_time: 5,
+            },
+          ],
+          effects: {
+            fontFamily: "Arial",
+            fontSize: 60,
+            fontWeight: "bold",
+            primaryColor: "#ffffff",
+            highlightColor: "#ffff00",
+            karaokeMode: "highlight",
+            positionX: 960,
+            positionY: 930,
+            enableBorder: false,
+            enableShadow: false,
+          },
+          renderSettings: {
+            resolution: "1080p",
+            frameRate: 30,
+            quality: "medium",
+            format: "mp4",
+          },
+        };
+
+        try {
+          const response = await fetch("http://localhost:3001/render/start", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(renderData),
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            log("renderStatus", "Render job started successfully!");
+            log("renderStatus", "Job ID: " + result.jobId);
+
+            // Poll for status
+            pollRenderStatus(result.jobId);
+          } else {
+            log("renderStatus", "Render job failed: " + result.error);
+          }
+        } catch (error) {
+          log("renderStatus", "Render error: " + error.message);
+        }
+      }
+
+      async function pollRenderStatus(jobId) {
+        try {
+          const response = await fetch(
+            "http://localhost:3001/render/status/" + jobId
+          );
+          const status = await response.json();
+
+          log(
+            "renderStatus",
+            "Status: " + status.status + " - " + (status.message || "")
+          );
+
+          if (status.status === "processing" || status.status === "pending") {
+            setTimeout(() => pollRenderStatus(jobId), 2000);
+          } else if (status.status === "completed") {
+            log(
+              "renderStatus",
+              "Render completed! Download URL: /download/" + jobId
+            );
+          } else if (status.status === "failed") {
+            log("renderStatus", "Render failed: " + status.error);
+          }
+        } catch (error) {
+          log("renderStatus", "Status check error: " + error.message);
+        }
+      }
+
+      // Auto-check server on load
+      window.onload = checkServer;
+    </script>
+  </body>
+</html>

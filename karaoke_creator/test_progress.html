@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Progress Bar</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <h1>🧪 Progress Bar Test</h1>
+
+      <div id="renderProgress" class="render-progress" style="display: block">
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <span id="progressText">Ready to test...</span>
+      </div>
+
+      <button onclick="testProgress()">Test Progress Animation</button>
+      <button onclick="testServerRender()">Test Server Render Progress</button>
+
+      <div
+        id="log"
+        style="
+          margin-top: 20px;
+          background: rgba(0, 0, 0, 0.3);
+          padding: 10px;
+          border-radius: 5px;
+          font-family: monospace;
+          font-size: 12px;
+          max-height: 300px;
+          overflow-y: auto;
+        "
+      ></div>
+    </div>
+
+    <script src="src/client/ServerRenderer.js"></script>
+    <script>
+      function log(message) {
+        const logDiv = document.getElementById("log");
+        logDiv.innerHTML +=
+          new Date().toLocaleTimeString() + ": " + message + "<br>";
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function testProgress() {
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+
+        log("Starting progress test...");
+
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 5;
+          progressFill.style.width = progress + "%";
+          progressText.textContent = `Testing progress: ${progress}%`;
+          log(`Progress: ${progress}%`);
+
+          if (progress >= 100) {
+            clearInterval(interval);
+            progressText.textContent = "Test complete!";
+            log("Progress test completed");
+          }
+        }, 200);
+      }
+
+      async function testServerRender() {
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+
+        log("Testing server render progress...");
+
+        // Mock app object for ServerRenderer
+        const mockApp = {
+          subtitles: [
+            { start_time: 1.0, end_time: 3.0, text: "Test subtitle" },
+          ],
+          wordSegments: [
+            { start_time: 1.0, end_time: 1.5, word: "Test" },
+            { start_time: 1.5, end_time: 3.0, word: "subtitle" },
+          ],
+        };
+
+        const serverRenderer = new ServerRenderer(mockApp);
+
+        try {
+          // Test server health first
+          const isHealthy = await serverRenderer.checkServerHealth();
+          log(`Server health: ${isHealthy ? "OK" : "Failed"}`);
+
+          if (!isHealthy) {
+            log("Server is not healthy - cannot test render progress");
+            return;
+          }
+
+          // Initialize WebSocket
+          await serverRenderer.initializeWebSocket();
+          log("WebSocket connected");
+
+          // Test progress callback
+          const progressCallback = (progress, message) => {
+            log(`Server progress: ${progress}% - ${message}`);
+            progressFill.style.width = progress + "%";
+            progressText.textContent = message;
+          };
+
+          // Note: This would need a real video upload to work fully
+          log("Server render test setup complete");
+          log(
+            "To test fully, upload a video in the main app and use server render mode"
+          );
+        } catch (error) {
+          log(`Server test error: ${error.message}`);
+        }
+      }
+
+      log("Progress test page loaded");
+    </script>
+  </body>
+</html>

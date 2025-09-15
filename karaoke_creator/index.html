@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎤 Karaoke Word Effects</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <h1>🎤 Karaoke Word Effects</h1>
+        <div class="file-controls">
+          <!-- Tab Navigation -->
+          <div class="tab-navigation">
+            <button class="tab-button active" data-tab="video">
+              🎥 Video Mode
+            </button>
+            <button class="tab-button" data-tab="imageAudio">
+              🖼️ Image + Audio Mode
+            </button>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="tab-content">
+            <!-- Video Mode Tab -->
+            <div id="videoTab" class="tab-panel active">
+              <div class="upload-section">
+                <div
+                  class="file-upload-area"
+                  onclick="document.getElementById('videoInput').click()"
+                >
+                  <div class="upload-icon">🎥</div>
+                  <div class="upload-text">
+                    <div class="upload-title">Select Video File</div>
+                    <div class="upload-subtitle">
+                      MP4, AVI, MOV, WebM supported
+                    </div>
+                  </div>
+                  <div class="upload-button">Browse Files</div>
+                </div>
+                <input
+                  type="file"
+                  id="videoInput"
+                  accept="video/*"
+                  style="display: none"
+                />
+                <div
+                  id="videoStatus"
+                  class="file-status-card"
+                  style="display: none"
+                >
+                  <div class="status-icon">✅</div>
+                  <div class="status-info">
+                    <div class="status-title" id="videoFileName">
+                      Video loaded
+                    </div>
+                    <div class="status-details" id="videoDetails">
+                      Ready for processing
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Image + Audio Mode Tab -->
+            <div id="imageAudioTab" class="tab-panel">
+              <div class="upload-section">
+                <div class="dual-upload">
+                  <div
+                    class="file-upload-area half"
+                    onclick="document.getElementById('imageInput').click()"
+                  >
+                    <div class="upload-icon">🖼️</div>
+                    <div class="upload-text">
+                      <div class="upload-title">Select Image</div>
+                      <div class="upload-subtitle">JPG, PNG, GIF supported</div>
+                    </div>
+                    <div class="upload-button">Browse</div>
+                  </div>
+                  <div
+                    class="file-upload-area half"
+                    onclick="document.getElementById('audioInput').click()"
+                  >
+                    <div class="upload-icon">🎵</div>
+                    <div class="upload-text">
+                      <div class="upload-title">Select Audio</div>
+                      <div class="upload-subtitle">MP3, WAV, AAC supported</div>
+                    </div>
+                    <div class="upload-button">Browse</div>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  id="imageInput"
+                  accept="image/*"
+                  style="display: none"
+                />
+                <input
+                  type="file"
+                  id="audioInput"
+                  accept="audio/*"
+                  style="display: none"
+                />
+
+                <div
+                  id="imageAudioStatus"
+                  class="file-status-grid"
+                  style="display: none"
+                >
+                  <div class="status-card">
+                    <div class="status-icon" id="imageStatusIcon">❌</div>
+                    <div class="status-info">
+                      <div class="status-title">Image</div>
+                      <div class="status-details" id="imageStatusText">
+                        No image selected
+                      </div>
+                    </div>
+                  </div>
+                  <div class="status-card">
+                    <div class="status-icon" id="audioStatusIcon">❌</div>
+                    <div class="status-info">
+                      <div class="status-title">Audio</div>
+                      <div class="status-details" id="audioStatusText">
+                        No audio selected
+                      </div>
+                    </div>
+                  </div>
+                  <div class="status-card">
+                    <div class="status-icon" id="uploadStatusIcon">⏳</div>
+                    <div class="status-info">
+                      <div class="status-title">Server</div>
+                      <div class="status-details" id="uploadStatusText">
+                        Not uploaded
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtitle Section (Common) -->
+          <div class="subtitle-section">
+            <div class="section-divider"></div>
+            <div
+              class="file-upload-area subtitle"
+              onclick="document.getElementById('subtitleInput').click()"
+            >
+              <div class="upload-icon">📝</div>
+              <div class="upload-text">
+                <div class="upload-title">Load Subtitles (Optional)</div>
+                <div class="upload-subtitle">JSON format subtitle files</div>
+              </div>
+              <div class="upload-button">Browse Files</div>
+            </div>
+            <input
+              type="file"
+              id="subtitleInput"
+              accept=".json"
+              style="display: none"
+            />
+          </div>
+        </div>
+      </header>
+
+      <!-- Bottom Status Notifications -->
+      <div class="status-notifications">
+        <div
+          id="statusDisplay"
+          class="status-display"
+          style="display: none"
+        ></div>
+      </div>
+
+      <main class="main-content">
+        <div class="left-panel">
+          <div class="video-section">
+            <div class="canvas-container">
+              <video id="videoPlayer" style="display: none"></video>
+              <canvas id="renderCanvas" width="1920" height="1080"></canvas>
+            </div>
+
+            <div class="playback-controls">
+              <button id="playPauseBtn">▶️</button>
+              <input type="range" id="seekBar" min="0" max="100" value="0" />
+              <span id="timeDisplay">00:00 / 00:00</span>
+            </div>
+          </div>
+
+          <div class="transcript-section">
+            <div class="transcript-header">
+              <h3>📝 Transcript Editor</h3>
+              <div class="transcript-controls">
+                <button id="resetSubtitle" class="transcript-btn reset-btn">
+                  🔄
+                </button>
+                <button id="saveSubtitle" class="transcript-btn save-btn">
+                  💾 Save
+                </button>
+                <button id="saveAsCopy" class="transcript-btn copy-btn">
+                  📋 Copy
+                </button>
+                <button id="addLine" class="transcript-btn add-btn">
+                  ➕ Add
+                </button>
+              </div>
+            </div>
+            <div class="transcript-container">
+              <div id="transcriptList" class="transcript-list">
+                <!-- Transcript lines will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="effects-panel">
+          <h3>🎵 Karaoke Effects</h3>
+          <div class="effect-controls">
+            <!-- Typography Section -->
+            <div class="collapsible-section">
+              <div
+                class="section-header collapsible-header"
+                data-section="typography"
+              >
+                <span>📝 Typography</span>
+                <span class="collapse-icon">▼</span>
+              </div>
+              <div class="section-content" id="typography-content">
+                <div class="effect-group">
+                  <label>Font Family:</label>
+                  <select id="fontFamily">
+                    <option value="Arial">Arial</option>
+                    <option value="Impact">Impact</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Comic Sans MS">Comic Sans MS</option>
+                    <option value="custom">Custom Font...</option>
+                  </select>
+                </div>
+                <div
+                  class="effect-group"
+                  id="customFontGroup"
+                  style="display: none"
+                >
+                  <label>Load Custom Font:</label>
+                  <input
+                    type="file"
+                    id="fontFile"
+                    accept=".ttf,.otf,.woff,.woff2"
+                  />
+                  <span id="fontStatus">No font loaded</span>
+                </div>
+                <div class="effect-group">
+                  <label>Font Size:</label>
+                  <input
+                    type="range"
+                    id="fontSize"
+                    min="30"
+                    max="120"
+                    value="60"
+                  />
+                  <span id="fontSizeValue">60px</span>
+                </div>
+                <div class="effect-group">
+                  <label>Font Weight:</label>
+                  <select id="fontWeight">
+                    <option value="normal">Normal</option>
+                    <option value="bold" selected>Bold</option>
+                    <option value="bolder">Bolder</option>
+                    <option value="lighter">Lighter</option>
+                  </select>
+                </div>
+                <div class="effect-group">
+                  <label>Colors:</label>
+                  <div class="color-controls">
+                    <div class="color-item">
+                      <label>Text:</label>
+                      <input type="color" id="primaryColor" value="#ffffff" />
+                    </div>
+                    <div class="color-item">
+                      <label>Highlight:</label>
+                      <input type="color" id="highlightColor" value="#ffff00" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Effects Section -->
+            <div class="collapsible-section">
+              <div
+                class="section-header collapsible-header"
+                data-section="effects"
+              >
+                <span>✨ Text Effects</span>
+                <span class="collapse-icon">▼</span>
+              </div>
+              <div class="section-content" id="effects-content">
+                <div class="effect-group">
+                  <label>Text Border:</label>
+                  <div class="dual-controls">
+                    <input type="checkbox" id="enableBorder" />
+                    <label for="enableBorder">Enable</label>
+                  </div>
+                </div>
+                <div
+                  class="effect-group"
+                  id="borderControls"
+                  style="display: none"
+                >
+                  <div class="dual-controls">
+                    <div class="control-item">
+                      <label>Width:</label>
+                      <input
+                        type="range"
+                        id="borderWidth"
+                        min="1"
+                        max="10"
+                        value="2"
+                      />
+                      <span id="borderWidthValue">2px</span>
+                    </div>
+                    <div class="control-item">
+                      <label>Color:</label>
+                      <input type="color" id="borderColor" value="#000000" />
+                    </div>
+                  </div>
+                </div>
+                <div class="effect-group">
+                  <label>Text Shadow:</label>
+                  <div class="dual-controls">
+                    <input type="checkbox" id="enableShadow" />
+                    <label for="enableShadow">Enable</label>
+                  </div>
+                </div>
+                <div
+                  class="effect-group"
+                  id="shadowControls"
+                  style="display: none"
+                >
+                  <div class="dual-controls">
+                    <div class="control-item">
+                      <label>Blur:</label>
+                      <input
+                        type="range"
+                        id="shadowBlur"
+                        min="0"
+                        max="20"
+                        value="4"
+                      />
+                      <span id="shadowBlurValue">4px</span>
+                    </div>
+                    <div class="control-item">
+                      <label>Color:</label>
+                      <input type="color" id="shadowColor" value="#000000" />
+                    </div>
+                  </div>
+                  <div class="dual-controls">
+                    <div class="control-item">
+                      <label>Offset X:</label>
+                      <input
+                        type="range"
+                        id="shadowOffsetX"
+                        min="-10"
+                        max="10"
+                        value="2"
+                      />
+                      <span id="shadowOffsetXValue">2px</span>
+                    </div>
+                    <div class="control-item">
+                      <label>Offset Y:</label>
+                      <input
+                        type="range"
+                        id="shadowOffsetY"
+                        min="-10"
+                        max="10"
+                        value="2"
+                      />
+                      <span id="shadowOffsetYValue">2px</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="effect-group">
+                  <label>Glow Effect:</label>
+                  <input
+                    type="range"
+                    id="glowIntensity"
+                    min="0"
+                    max="50"
+                    value="20"
+                  />
+                  <span id="glowValue">20px</span>
+                </div>
+                <div class="effect-group">
+                  <label>Glow Color:</label>
+                  <input type="color" id="glowColor" value="#ffff00" />
+                </div>
+                <div class="effect-group">
+                  <label>Glow Opacity:</label>
+                  <input
+                    type="range"
+                    id="glowOpacity"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value="0.8"
+                  />
+                  <span id="glowOpacityValue">0.8</span>
+                </div>
+                <div class="effect-group">
+                  <label>Karaoke Mode:</label>
+                  <select id="karaokeMode">
+                    <option value="highlight">Highlight & Return</option>
+                    <option value="gradient">Gradual Color Change</option>
+                    <option value="fill">Progressive Fill</option>
+                    <option value="bounce">Bounce Effect</option>
+                  </select>
+                </div>
+                <div class="effect-group">
+                  <label>Animation Speed:</label>
+                  <input
+                    type="range"
+                    id="animationSpeed"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value="1"
+                  />
+                  <span id="speedValue">1x</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Layout Section -->
+            <div class="collapsible-section">
+              <div
+                class="section-header collapsible-header"
+                data-section="layout"
+              >
+                <span>📐 Layout</span>
+                <span class="collapse-icon">▼</span>
+              </div>
+              <div class="section-content" id="layout-content">
+                <div class="effect-group">
+                  <label>Text Position:</label>
+                  <select id="textPosition">
+                    <option value="bottom">Bottom</option>
+                    <option value="center">Center</option>
+                    <option value="top">Top</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div
+                  class="effect-group"
+                  id="customPositionGroup"
+                  style="display: none"
+                >
+                  <label>Vertical Position:</label>
+                  <input
+                    type="range"
+                    id="verticalPosition"
+                    min="10"
+                    max="90"
+                    value="85"
+                  />
+                  <span id="verticalValue">85%</span>
+                </div>
+                <div class="effect-group">
+                  <label>Precise Position:</label>
+                  <div class="position-controls">
+                    <div class="position-input">
+                      <label>X:</label>
+                      <input
+                        type="number"
+                        id="positionX"
+                        min="0"
+                        max="1920"
+                        value="960"
+                      />
+                      <span>px</span>
+                    </div>
+                    <div class="position-input">
+                      <label>Y:</label>
+                      <input
+                        type="number"
+                        id="positionY"
+                        min="0"
+                        max="1080"
+                        value="930"
+                      />
+                      <span>px</span>
+                    </div>
+                  </div>
+                  <button id="centerPosition" class="center-btn">
+                    📍 Center Text
+                  </button>
+                </div>
+                <div class="effect-group">
+                  <label>Word Spacing:</label>
+                  <input
+                    type="range"
+                    id="wordSpacing"
+                    min="0"
+                    max="50"
+                    value="10"
+                  />
+                  <span id="spacingValue">10px</span>
+                </div>
+                <div class="effect-group">
+                  <label>Text Layout:</label>
+                  <div class="text-layout-controls">
+                    <div class="layout-option">
+                      <label>Max Line Width:</label>
+                      <input
+                        type="number"
+                        id="maxLineWidth"
+                        min="200"
+                        max="1800"
+                        value="1200"
+                      />
+                      <span>px</span>
+                    </div>
+                    <div class="layout-option">
+                      <label>Line Height:</label>
+                      <input
+                        type="range"
+                        id="lineHeight"
+                        min="1"
+                        max="2.5"
+                        step="0.1"
+                        value="1.2"
+                      />
+                      <span id="lineHeightValue">1.2x</span>
+                    </div>
+                    <div class="layout-option">
+                      <input type="checkbox" id="autoBreak" checked />
+                      <label for="autoBreak">Auto-break long lines</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preset Effects Section -->
+            <div class="collapsible-section">
+              <div
+                class="section-header collapsible-header"
+                data-section="presets"
+              >
+                <span>🎨 Preset Effects</span>
+                <span class="collapse-icon">▼</span>
+              </div>
+              <div class="section-content" id="presets-content">
+                <div class="effect-group">
+                  <label>Save Current Settings:</label>
+                  <div class="preset-save-controls">
+                    <input
+                      type="text"
+                      id="presetName"
+                      placeholder="Enter preset name..."
+                    />
+                    <button id="savePreset" class="preset-btn save-preset-btn">
+                      💾 Save
+                    </button>
+                  </div>
+                </div>
+                <div class="effect-group">
+                  <label>Load Preset:</label>
+                  <div class="preset-load-controls">
+                    <select id="presetSelect">
+                      <option value="">Select a preset...</option>
+                    </select>
+                    <div class="preset-buttons">
+                      <button
+                        id="loadPreset"
+                        class="preset-btn load-preset-btn"
+                      >
+                        📂 Load
+                      </button>
+                      <button
+                        id="deletePreset"
+                        class="preset-btn delete-preset-btn"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="effect-group">
+                  <label>Preset Management:</label>
+                  <div class="preset-management">
+                    <button id="exportPresets" class="preset-btn export-btn">
+                      📤 Export All
+                    </button>
+                    <input
+                      type="file"
+                      id="importPresets"
+                      accept=".json"
+                      style="display: none"
+                    />
+                    <button id="importPresetsBtn" class="preset-btn import-btn">
+                      📥 Import
+                    </button>
+                    <button id="resetPresets" class="preset-btn reset-btn">
+                      🔄 Reset All
+                    </button>
+                  </div>
+                </div>
+                <div class="effect-group">
+                  <label>Built-in Presets:</label>
+                  <div class="builtin-presets">
+                    <button
+                      class="preset-btn builtin-btn"
+                      data-preset="classic"
+                    >
+                      🎵 Classic Karaoke
+                    </button>
+                    <button class="preset-btn builtin-btn" data-preset="modern">
+                      ✨ Modern Glow
+                    </button>
+                    <button class="preset-btn builtin-btn" data-preset="retro">
+                      🌈 Retro Style
+                    </button>
+                    <button
+                      class="preset-btn builtin-btn"
+                      data-preset="minimal"
+                    >
+                      📝 Minimal Clean
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="export-panel">
+            <h3>🎬 Export Video</h3>
+            <div class="export-controls">
+              <div class="export-group">
+                <label>Resolution:</label>
+                <select id="renderResolution">
+                  <option value="720p">720p (1280x720)</option>
+                  <option value="1080p" selected>1080p (1920x1080)</option>
+                  <option value="4k">4K (3840x2160)</option>
+                </select>
+              </div>
+              <div class="export-group">
+                <label>Frame Rate:</label>
+                <select id="renderFrameRate">
+                  <option value="24">24 FPS</option>
+                  <option value="30" selected>30 FPS</option>
+                  <option value="60">60 FPS</option>
+                </select>
+              </div>
+              <div class="export-group">
+                <label>Quality:</label>
+                <select id="renderQuality">
+                  <option value="high">High Quality</option>
+                  <option value="medium" selected>Medium Quality</option>
+                  <option value="low">Low Quality</option>
+                </select>
+              </div>
+              <div class="export-group">
+                <label>Format:</label>
+                <select id="renderFormat">
+                  <option value="mp4">MP4 (Better Compatibility)</option>
+                  <option value="webm">WebM (Smaller Size)</option>
+                  <option value="auto" selected>Auto (Best Available)</option>
+                </select>
+              </div>
+              <div class="export-group">
+                <label>Render Mode:</label>
+                <select id="renderMode">
+                  <option value="server" selected>
+                    🖥️ Server (No Memory Limits)
+                  </option>
+                  <option value="realtime">
+                    🎯 Real-time (Perfect audio sync)
+                  </option>
+                </select>
+              </div>
+              <button id="renderBtn" class="render-button">
+                🎬 Start Render
+              </button>
+              <button
+                onclick="window.karaokeApp.showCurrentEffects()"
+                style="
+                  margin-left: 10px;
+                  padding: 8px 16px;
+                  background: #6366f1;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                🔍 Show Effects
+              </button>
+
+              <div
+                id="renderProgress"
+                class="render-progress"
+                style="display: none"
+              >
+                <div class="progress-bar">
+                  <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <span id="progressText">Preparing render...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Advanced Rendering Systems -->
+    <script src="src/core/UnifiedTextRenderer.js"></script>
+    <script src="src/client/ServerRenderer.js"></script>
+    <script src="src/core/true-parallel-renderer.js"></script>
+    <script src="src/core/fixed-memory-renderer.js"></script>
+    <script src="src/core/memory-optimized-renderer.js"></script>
+    <script src="src/core/parallel-renderer.js"></script>
+    <script src="src/core/gpu-renderer.js"></script>
+    <script src="src/core/batch-processor.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
